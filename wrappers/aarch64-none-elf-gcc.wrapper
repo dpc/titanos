@@ -1,0 +1,3 @@
+#!/bin/sh
+
+exec aarch64-none-elf-gcc -T"rt/$ARCH/kernel.ld" -nostdlib "-Wl,--start-group" $@ "-Wl,--end-group"

@@ -1,0 +1,13 @@
+language: rust
+
+before_install:
+  - sudo apt-get update
+  - mkdir opt
+  - cd opt && wget http://releases.linaro.org/14.11/components/toolchain/binaries/aarch64-none-elf/gcc-linaro-4.9-2014.11-x86_64_aarch64-elf.tar.xz && tar xf gcc-linaro-4.9-2014.11-x86_64_aarch64-elf.tar.xz --strip=1 && cd ..
+  - cd opt && git clone https://github.com/rust-lang/rust.git && cd ..
+  - cd opt && ls && ls bin && cd ..
+  - rustc --version
+
+script:
+  - export PATH="$(pwd)/opt/bin/:$PATH" && make
+
