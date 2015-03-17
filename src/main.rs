@@ -18,7 +18,6 @@ use titanium::drv::{Driver, Uart};
 
 mod arch;
 mod mem;
-mod io;
 mod mm;
 
 use core::intrinsics::{volatile_store, volatile_load};
@@ -30,8 +29,7 @@ pub extern "C" fn main()
 {
     if arch::cpu_id() == 0 {
         mem::init();
-        // not ready yet
-        //mm::init();
+        mm::init();
     }
 
 

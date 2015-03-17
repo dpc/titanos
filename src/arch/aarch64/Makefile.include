@@ -1,3 +1,4 @@
 CROSS_COMPILE=aarch64-none-elf-
 
+COMMON_FLAGS += -march=armv8-a+nofp+nosimd
 CFLAGS += -mlittle-endian

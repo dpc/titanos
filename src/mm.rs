@@ -37,11 +37,12 @@ impl PageArena {
         }
     }
 }
+
 pub fn init() {
     let start : usize = unsafe {&_pt_start} as *const _ as usize;
     let end : usize = unsafe {&_pt_end} as *const _ as usize;
     let mut arena = PageArena::new(start, end);
     let table = PageTable::new(&mut arena);
 
-    table.map_all();
+    //table.map_all();
 }

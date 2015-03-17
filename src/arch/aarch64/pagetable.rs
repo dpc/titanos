@@ -1,10 +1,14 @@
 use core::iter::range;
 use titanium::io::{VolatileAccess, Default};
+use titanium::arch::reg::*;
+use titanium::arch::mmu::*;
 use titanium::consts::*;
-use titanium::arch::consts::*;
 
-use arch::{PTE_ATTRS_MMIO, PTE_ATTRS_RAM, PAGE_SIZE};
+use super::PAGE_SIZE;
 use mm::PageArena;
+
+const PTE_ATTRS_MMIO : u64 = 1 << PTE_XN::SHIFT;
+const PTE_ATTRS_RAM : u64 = PTE_AP_RW << PTE_AP::SHIFT;
 
 pub struct PageTable<A = Default>
 where A : VolatileAccess {
@@ -27,7 +31,7 @@ impl<A> PageTable<A>
 where A : VolatileAccess {
 
     // TODO: This is so lame ...
-    pub fn map_all(&self) {
+    pub fn _map_all(&self) {
         for i in range(0, PAGE_SIZE / 8) {
             let pte_addr = self.start + i * 8;
 
@@ -41,21 +45,22 @@ where A : VolatileAccess {
         }
     }
 
-    pub fn start(&self) {
+    pub fn _start(&self) {
         let asid = 0;
         let addr = self.start as u64; // TODO: check alignment
 
-        reg64_write!(ttbr0_el1,
-                     asid << TTBR_ASID_SHIFT |
-                     addr << TTBR_BADDR_SHIFT);
+        ttbr0_el1::write(
+            asid << ttbr0_el1::ASID::SHIFT |
+            addr << ttbr0_el1::BADDR::SHIFT
+            );
 
         // invalidate all to PoU
-        reg32_write!(iciallu, 0);
+        unsafe { asm!("ic iallu"); }
         dsb!();
         // TODO: invalidate i- and c- cache by set-way
         // TODO: move to head?
 
-        reg32_write!(tlbiall, 0);
+        unsafe { asm!("tlbi alle1"); }
         dsb!();
     }
 }

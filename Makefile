@@ -1,5 +1,10 @@
+ifeq ($(RELEASE), 1)
+O ?= target/target/release
+DEP_O ?= target/target/release/deps
+else
 O ?= target/target/debug
 DEP_O ?= target/target/debug/deps
+endif
 
 ARCH ?= aarch64
 export ARCH
@@ -18,11 +23,17 @@ AS = $(CROSS_COMPILE)as
 OBJCOPY = $(CROSS_COMPILE)objcopy
 OBJDUMP = $(CROSS_COMPILE)objdump
 
+COMMON_FLAGS += -Wall -nostdlib
+
+ifeq ($(RELEASE), 1)
 RSFLAGS += -O -g
 CFLAGS += -O2
-
+CARGOFLAGS += --release
+else
+RSFLAGS += -g
+CFLAGS += -O0
 COMMON_FLAGS += -g
-COMMON_FLAGS += -Wall -nostdlib
+endif
 
 AFLAGS += -D__ASSEMBLY__ $(COMMON_FLAGS) -Ic/include
 CFLAGS += $(COMMON_FLAGS) -Ic/include
@@ -46,6 +57,9 @@ RT_OBJS := $(RT_OBJS:.S=.o)
 RT_OBJS := $(addprefix $(O)/,$(RT_OBJS))
 
 RT_OBJS_DEPS := $(RT_OBJS:.o=.o.d)
+
+CLEAN += $(RT_OBJS_DEPS) $(RT_OBJS)
+
 -include $(RT_OBJS_DEPS)
 
 $(O)/%.o: %.c
@@ -58,12 +72,18 @@ $(O)/%.o: %.S
 	$(CC) $(AFLAGS) -c $< -o $@
 	$(CC) $(AFLAGS) -MM -MT$@ -MF$@.d -c $<
 
+CLEAN += $(DEP_O)/libcompiler-rt.a
 $(DEP_O)/libcompiler-rt.a: $(RT_OBJS) $(TARGET_FILE)
 	mkdir -p $(dir $@)
 	$(AR) rcs $@ $(RT_OBJS)
 
 $(O)/titanos: $(DEP_O)/libcompiler-rt.a FORCE
-	PATH=wrappers/:$$PATH cargo build --target $(TARGET_FILE) --verbose
+	PATH=wrappers/:$$PATH cargo build $(CARGOFLAGS) --target $(TARGET_FILE) --verbose
+
+.PHONY: doc
+doc: FORCE
+	echo "Sorry, this does not work ATM: https://github.com/rust-lang/cargo/issues/1427"
+	PATH=wrappers/:$$PATH cargo doc $(CARGOFLAGS) --target $(TARGET_FILE)
 
 $(O)/titanos.hex: $(O)/titanos
 	$(OBJCOPY) -O ihex $(O)/titanos $(O)/titanos.hex
@@ -74,7 +94,7 @@ $(O)/titanos.bin: $(O)/titanos
 .PHONY: clean
 clean:
 	cargo clean
-	echo "FIXME: del leftovers"
+	rm -f $(CLEAN)
 
 .PHONY: objdump
 objdump:
