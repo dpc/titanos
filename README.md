@@ -26,8 +26,7 @@ To build in release mode, use `export RELEASE=1`.
 Components:
 
 * `src/`: source code
-* `rt/`: basic runtime necessary for things to compile
-* `c/`: some C code glue
+* `rt/`: basic C/ASM runtime
 * [titanium.rs][titanium]: Titanos is based on this
   collection of low-level macros, functions and constants that
   can be reused by other software targeting bare-metal development in Rust.

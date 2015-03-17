@@ -35,15 +35,15 @@ CFLAGS += -O0
 COMMON_FLAGS += -g
 endif
 
-AFLAGS += -D__ASSEMBLY__ $(COMMON_FLAGS) -Ic/include
-CFLAGS += $(COMMON_FLAGS) -Ic/include
+AFLAGS += -D__ASSEMBLY__ $(COMMON_FLAGS) -Irt/include
+CFLAGS += $(COMMON_FLAGS) -Irt/include
 LDFLAGS += $(COMMON_FLAGS)
 
 RSFLAGS += --cfg arch_$(ARCH)
 LDFLAGS +=
 CFLAGS += -Irt/$(ARCH)/include/
 
-AFLAGS += -D__ASSEMBLY__ $(COMMON_FLAGS) -Ic/include
+AFLAGS += -D__ASSEMBLY__ $(COMMON_FLAGS) -Irt/include
 
 .PHONY: all
 
