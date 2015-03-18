@@ -63,18 +63,18 @@ CLEAN += $(RT_OBJS_DEPS) $(RT_OBJS)
 -include $(RT_OBJS_DEPS)
 
 $(O)/%.o: %.c
-	mkdir -p $(dir $@)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 	$(CC) $(CFLAGS) -MM -MT$@ -MF$@.d -c $< -o $@
 
 $(O)/%.o: %.S
-	mkdir -p $(dir $@)
+	@mkdir -p $(dir $@)
 	$(CC) $(AFLAGS) -c $< -o $@
 	$(CC) $(AFLAGS) -MM -MT$@ -MF$@.d -c $<
 
 CLEAN += $(DEP_O)/libcompiler-rt.a
 $(DEP_O)/libcompiler-rt.a: $(RT_OBJS) $(TARGET_FILE)
-	mkdir -p $(dir $@)
+	@mkdir -p $(dir $@)
 	$(AR) rcs $@ $(RT_OBJS)
 
 $(O)/titanos: $(DEP_O)/libcompiler-rt.a FORCE
@@ -82,7 +82,7 @@ $(O)/titanos: $(DEP_O)/libcompiler-rt.a FORCE
 
 .PHONY: doc
 doc: FORCE
-	echo "Sorry, this does not work ATM: https://github.com/rust-lang/cargo/issues/1427"
+	@echo "Sorry, this does not work ATM: https://github.com/rust-lang/cargo/issues/1427"
 	PATH=wrappers/:$$PATH cargo doc $(CARGOFLAGS) --target $(TARGET_FILE)
 
 $(O)/titanos.hex: $(O)/titanos

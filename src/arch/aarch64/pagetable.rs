@@ -2,6 +2,7 @@ use core::iter::range;
 use titanium::io::{VolatileAccess, Default};
 use titanium::arch::reg::*;
 use titanium::arch::mmu::*;
+use titanium::arch::*;
 use titanium::consts::*;
 
 use super::PAGE_SIZE;
@@ -31,7 +32,7 @@ impl<A> PageTable<A>
 where A : VolatileAccess {
 
     // TODO: This is so lame ...
-    pub fn _map_all(&self) {
+    pub fn map_all(&self) {
         for i in range(0, PAGE_SIZE / 8) {
             let pte_addr = self.start + i * 8;
 
@@ -45,7 +46,7 @@ where A : VolatileAccess {
         }
     }
 
-    pub fn _start(&self) {
+    pub fn start(&self) {
         let asid = 0;
         let addr = self.start as u64; // TODO: check alignment
 
@@ -55,13 +56,17 @@ where A : VolatileAccess {
             );
 
         // invalidate all to PoU
-        unsafe { asm!("ic iallu"); }
-        dsb!();
+        unsafe { asm!("ic ialluis" :::: "volatile"); }
+        dsb_sy();
+        isb();
+
         // TODO: invalidate i- and c- cache by set-way
         // TODO: move to head?
 
-        unsafe { asm!("tlbi alle1"); }
-        dsb!();
+        // TODO: fails ATM
+        // unsafe { asm!("tlbi alle1is" :::: "volatile"); }
+        dsb_sy();
+        isb();
     }
 }
 

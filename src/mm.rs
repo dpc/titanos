@@ -14,11 +14,9 @@ pub struct PageArena {
     current : usize,
 }
 
-
 impl PageArena {
 
     pub fn new(start : usize, end : usize) -> PageArena {
-
         // TODO: check alignment and bug if wrong
         PageArena {
             start: start,
@@ -44,5 +42,6 @@ pub fn init() {
     let mut arena = PageArena::new(start, end);
     let table = PageTable::new(&mut arena);
 
-    //table.map_all();
+    table.map_all();
+    table.start();
 }

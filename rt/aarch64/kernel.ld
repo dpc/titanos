@@ -42,9 +42,9 @@ SECTIONS
   . = ALIGN(8);
   .bss :
   {
-
     . = ALIGN(8);
     _bss_start = .;
+    _bss_clear_start = .;
 
     . = ALIGN(64K);
     _pt_start = .;
@@ -57,13 +57,18 @@ SECTIONS
     *(COMMON)
 
     . = ALIGN(8);
-    _bss_end = .;
+    _bss_clear_end = .;
+
+    . = ALIGN(8);
+    _boot_stack_start = .;
+    . += 1024;
+    _boot_stack_end = .;
 
     . = ALIGN(8);
     _stack_start = .;
     . += 1024;
-    . = ALIGN(8);
     _stack_end = .;
+    _bss_end = .;
   } >RAM
 
 
@@ -74,7 +79,6 @@ SECTIONS
     libgcc.a ( * )
     *(.note)
     *(.note.*)
-
   }
 
   .ARM.attributes 0 : { *(.ARM.attributes) }
