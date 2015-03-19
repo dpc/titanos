@@ -7,7 +7,7 @@ before_install:
   - cd opt && git clone https://github.com/rust-lang/rust.git && cd ..
   - cd opt && ls && ls bin && cd ..
   - rustc --version
+  - cargo --version
 
 script:
-  - export PATH="$(pwd)/opt/bin/:$PATH" && make
-
+  - export PATH="$(pwd)/opt/bin/:$PATH" && ./testall.sh
