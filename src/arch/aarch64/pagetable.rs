@@ -8,6 +8,7 @@ use titanium::arch::reg::*;
 use titanium::arch::mmu::*;
 use titanium::arch::*;
 use titanium::consts::*;
+pub use titanium::drv;
 
 use mm::PageArena;
 
@@ -53,6 +54,10 @@ impl core::ops::IndexMut<usize> for PageTable {
     }
 }
 
+selftest!(page_table (uart: &mut drv::Uart) {
+    uart.put('p' as u8);
+});
+
 //#[static_assert]
 //static _PAGE_TABLE_SIZE : bool = mem::size_of::<PageTable>() == PAGE_SIZE;
 
@@ -96,8 +101,6 @@ where A : VolatileAccess {
             let needs_block = (va & sub_mask != 0) || (pa & sub_mask != 0);
 
         }
-
-
     }
 
     pub fn map(&self, va : u64, pa : u64, size : u64) {

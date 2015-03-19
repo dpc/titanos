@@ -6,6 +6,8 @@ authors = ["Dawid Ciężarkiewicz <dpc@ucore.info>"]
 [features]
 default = []
 
+selftest = [ "titanium/selftest" ]
+
 [[bin]]
 name = "titanos"
 path = "src/main.rs"
@@ -13,17 +15,12 @@ path = "src/main.rs"
 [dependencies.core]
 git = "https://github.com/dpc/libcore-git.rs.git"
 
-# Maybe soon...
+# TODO: Maybe soon... for #[test] running on host
 #[dependencies.std]
 #git = "https://github.com/dpc/libstd-git.rs.git"
-
 
 [dependencies.titanium]
 git = "https://github.com/dpc/titanium.rs.git"
 
 [dependencies.titanium_arm_pl011]
 git = "https://github.com/dpc/titanium_arm_pl011.rs.git"
-
-[dependencies.selftest]
-path = "selftest"
-optional = true
