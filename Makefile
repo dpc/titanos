@@ -49,8 +49,7 @@ AFLAGS += -D__ASSEMBLY__ $(COMMON_FLAGS) -Irt/include
 
 all: $(O)/titanos.hex $(O)/titanos.bin
 
-RT_SRCS=rt/$(ARCH)/head.S
-
+RT_SRCS = rt/$(ARCH)/head.S
 RT_OBJS = $(RT_SRCS:.c=.o)
 RT_OBJS := $(RT_OBJS:.S=.o)
 
