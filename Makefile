@@ -25,12 +25,14 @@ OBJDUMP = $(CROSS_COMPILE)objdump
 
 COMMON_FLAGS += -Wall -nostdlib
 
-ifeq ($(RELEASE), 1)
-RSFLAGS += -O -g
+ifneq ($(SELFTEST),)
+CARGOFLAGS += --features=selftest
+endif
+
+ifneq ($(RELEASE),)
 CFLAGS += -O2
 CARGOFLAGS += --release
 else
-RSFLAGS += -g
 CFLAGS += -O0
 COMMON_FLAGS += -g
 endif

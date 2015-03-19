@@ -1,6 +1,7 @@
+#![allow(unused)]
 use core::option::Option;
 
-use arch::PageTable;
+use arch::PageTableController;
 use arch::PAGE_SIZE;
 
 extern {
@@ -9,7 +10,7 @@ extern {
 }
 
 pub struct PageArena {
-    start : usize,
+    _start : usize,
     end : usize,
     current : usize,
 }
@@ -19,7 +20,7 @@ impl PageArena {
     pub fn new(start : usize, end : usize) -> PageArena {
         // TODO: check alignment and bug if wrong
         PageArena {
-            start: start,
+            _start: start,
             end: end,
             current: start,
         }
@@ -40,8 +41,8 @@ pub fn init() {
     let start : usize = unsafe {&_pt_start} as *const _ as usize;
     let end : usize = unsafe {&_pt_end} as *const _ as usize;
     let mut arena = PageArena::new(start, end);
-    let table = PageTable::new(&mut arena);
+    let table = PageTableController::new(&mut arena);
 
-    table.map_all();
-    table.start();
+//    table.map_all();
+//    table.start();
 }

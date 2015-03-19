@@ -18,6 +18,9 @@ SECTIONS
     *(.glue_7)
     *(.glue_7t)
     *(.eh_frame)
+    PROVIDE_HIDDEN (_selftest_start = .);
+    KEEP (*(.selftest))
+    PROVIDE_HIDDEN (_selftest_end = .);
   } >RAM
 
 

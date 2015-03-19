@@ -4,10 +4,15 @@
 #![feature(core)]
 #![feature(asm)]
 #![feature(lang_items)]
+#![feature(static_assert)]
 
-#![crate_name="titanos"]
-
+#[cfg(not(test))]
 extern crate core;
+
+//#[cfg(test)]
+//#[macro_use]
+//extern crate std;
+
 #[macro_use]
 extern crate titanium;
 
@@ -19,6 +24,7 @@ use titanium::drv::{Driver, Uart};
 mod arch;
 mod mem;
 mod mm;
+mod selftest;
 
 use core::intrinsics::{volatile_store, volatile_load};
 
@@ -35,6 +41,8 @@ pub extern "C" fn main()
 
     let mut uart = PL011::new(0x1c090000);
     uart.init();
+
+    selftest::selftest(&mut uart);
 
     loop {
         let mut tx = unsafe { volatile_load(&mut x) };

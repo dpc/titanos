@@ -3,6 +3,9 @@ name = "titanos"
 version = "0.0.1"
 authors = ["Dawid Ciężarkiewicz <dpc@ucore.info>"]
 
+[features]
+default = []
+
 [[bin]]
 name = "titanos"
 path = "src/main.rs"
@@ -10,8 +13,17 @@ path = "src/main.rs"
 [dependencies.core]
 git = "https://github.com/dpc/libcore-git.rs.git"
 
+# Maybe soon...
+#[dependencies.std]
+#git = "https://github.com/dpc/libstd-git.rs.git"
+
+
 [dependencies.titanium]
 git = "https://github.com/dpc/titanium.rs.git"
 
 [dependencies.titanium_arm_pl011]
 git = "https://github.com/dpc/titanium_arm_pl011.rs.git"
+
+[dependencies.selftest]
+path = "selftest"
+optional = true
