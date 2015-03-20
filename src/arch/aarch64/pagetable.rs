@@ -1,5 +1,4 @@
 #![allow(unused)]
-use core::iter::range;
 use core::mem;
 use core;
 
@@ -55,7 +54,7 @@ impl core::ops::IndexMut<usize> for PageTable {
 }
 
 selftest!(page_table (_bla : &mut drv::uart::UartWriter) {
-    false
+    true
 });
 
 //#[static_assert]
@@ -115,7 +114,7 @@ where A : VolatileAccess {
     pub fn map_all(&self) {
         let table = self.root();
 
-        for i in range(0, PAGE_SIZE as usize / 8) {
+        for i in (0..PAGE_SIZE as usize / 8) {
 
             let addr = (i << SZ_512MB_SHIFT) as u64;
             let attr = if addr < 0x80000000 {
