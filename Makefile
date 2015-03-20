@@ -47,6 +47,8 @@ CFLAGS += -Irt/$(ARCH)/include/
 
 AFLAGS += -D__ASSEMBLY__ $(COMMON_FLAGS) -Irt/include
 
+QEMUFLAGS += -nographic -machine vexpress-a15 -cpu cortex-a57 -m 2048 -semihosting
+
 .PHONY: all
 
 all: $(O)/titanos.hex $(O)/titanos.bin
@@ -115,11 +117,11 @@ qemu-gdb: qemu-$(ARCH)-gdb
 
 .PHONY: qemu-aarch64
 qemu-aarch64:
-	qemu-system-aarch64 -nographic -machine vexpress-a15 -cpu cortex-a57 -m 2048 -kernel $(O)/titanos.bin
+	qemu-system-aarch64 $(QEMUFLAGS) -kernel $(O)/titanos.bin
 
 .PHONY: qemu-aarch64-gdb
 qemu-aarch64-gdb:
-	qemu-system-aarch64 -S -s -nographic -machine vexpress-a15 -cpu cortex-a57 -m 2048 -kernel $(O)/titanos.bin
+	qemu-system-aarch64 -S -s $(QEMUFLAGS) -kernel $(O)/titanos.bin
 
 .PHONY: gdb
 gdb:

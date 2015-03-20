@@ -54,8 +54,8 @@ impl core::ops::IndexMut<usize> for PageTable {
     }
 }
 
-selftest!(page_table (uart: &mut drv::Uart) {
-    uart.put('p' as u8);
+selftest!(page_table (_bla : &mut drv::uart::UartWriter) {
+    false
 });
 
 //#[static_assert]

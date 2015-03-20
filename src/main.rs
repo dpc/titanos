@@ -6,7 +6,7 @@
 #![feature(lang_items)]
 #![feature(static_assert)]
 
-#[cfg(not(test))]
+#[macro_use]
 extern crate core;
 
 #[macro_use]
@@ -14,10 +14,15 @@ extern crate titanium;
 
 // temporary here
 extern crate arm_pl011;
-use arm_pl011::PL011;
-use titanium::drv::{Driver, Uart};
 
-use core::str::StrExt;
+
+use core::fmt::Write;
+
+use titanium::drv::{Driver};
+use titanium::drv::uart::UartWriter;
+
+use arm_pl011::PL011;
+
 mod arch;
 mod mem;
 mod mm;
@@ -33,11 +38,11 @@ pub extern "C" fn main()
     let mut uart = PL011::new(0x1c090000);
     uart.init();
 
-    titanium::selftest::selftest(&mut uart);
+    let mut writer = UartWriter::new(&uart);
+    titanium::selftest::selftest(&mut writer);
 
-    for ch in "Hello Embedded World!".bytes() {
-        uart.put(ch);
-    }
+
+    write!(&mut writer, "Hello Embedded World!").unwrap();
 
     loop { }
 }
