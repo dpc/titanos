@@ -3,6 +3,12 @@ name = "titanos"
 version = "0.0.1"
 authors = ["Dawid Ciężarkiewicz <dpc@ucore.info>"]
 
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+
 [features]
 default = []
 

@@ -30,7 +30,7 @@ CARGOFLAGS += --features=selftest
 endif
 
 ifneq ($(RELEASE),)
-CFLAGS += -O2
+CFLAGS += -O3
 CARGOFLAGS += --release
 else
 CFLAGS += -O0
@@ -116,11 +116,11 @@ qemu: qemu-$(ARCH)
 qemu-gdb: qemu-$(ARCH)-gdb
 
 .PHONY: qemu-aarch64
-qemu-aarch64:
+qemu-aarch64: $(O)/titanos.bin
 	qemu-system-aarch64 $(QEMUFLAGS) -kernel $(O)/titanos.bin
 
 .PHONY: qemu-aarch64-gdb
-qemu-aarch64-gdb:
+qemu-aarch64-gdb: $(O)/titanos.bin
 	qemu-system-aarch64 -S -s $(QEMUFLAGS) -kernel $(O)/titanos.bin
 
 .PHONY: gdb
