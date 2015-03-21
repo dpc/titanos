@@ -1,6 +1,9 @@
 #![allow(unused)]
 use core::mem;
 use core;
+use core::option::Option;
+use core::option::Option::{Some, None};
+use core::intrinsics::transmute;
 
 use titanium::io::{VolatileAccess, Default};
 use titanium::arch::reg::*;
@@ -8,6 +11,7 @@ use titanium::arch::mmu::*;
 use titanium::arch::*;
 use titanium::consts::*;
 pub use titanium::drv;
+pub use titanium::world;
 
 use mm::PageArena;
 
@@ -30,36 +34,56 @@ def_bitfields!(u64,
 const TNSZ : u64 = 22;
 const IA_WIDTH : u64 = 42; // IA[41:16]
 
-const PTE_ATTRS_MMIO : u64 = 1 << PTE_XN::SHIFT;
-const PTE_ATTRS_RAM : u64 = PTE_AP_RW << PTE_AP::SHIFT;
+const PTE_ATTRS_MMIO : u64 = 1 << pte::XN::SHIFT;
+const PTE_ATTRS_RAM : u64 = pte::AP_RW << pte::AP::SHIFT;
+
+#[repr(C)]
+struct Pte(u64);
+
+impl Pte {
+
+    fn from_u64(val : u64) -> Pte {
+        Pte(val)
+    }
+
+    fn as_table(&self) -> Option<&PageTable> {
+        let &Pte(p) = self;
+
+        if pte::TYPE::from(p) == pte::TYPE_TABLE {
+            Some(unsafe { transmute(self) })
+        } else {
+            None
+        }
+    }
+}
 
 #[repr(C)]
 struct PageTable {
-    pub entries : [u64; ENTRIES],
+    pub entries : [Pte; ENTRIES],
 }
 
 
 impl core::ops::Index<usize> for PageTable {
-    type Output = u64;
+    type Output = Pte;
 
-    fn index<'a>(&'a self, idx : &usize) -> &'a u64 {
+    fn index<'a>(&'a self, idx : &usize) -> &'a Pte {
         &self.entries[*idx]
     }
 }
 
 impl core::ops::IndexMut<usize> for PageTable {
-    fn index_mut<'a>(&'a mut self, idx : &usize) -> &'a mut u64{
+    fn index_mut<'a>(&'a mut self, idx : &usize) -> &'a mut Pte {
         &mut self.entries[*idx]
     }
 }
 
-selftest!(page_table (_bla : &mut drv::uart::UartWriter) {
-    true
+selftest!(page_table_size (_bla : &mut drv::uart::UartWriter<world::Real>) {
+    mem::size_of::<PageTable>() == PAGE_SIZE as usize
 });
 
-//#[static_assert]
-//static _PAGE_TABLE_SIZE : bool = mem::size_of::<PageTable>() == PAGE_SIZE;
-
+selftest!(page_table (_bla : &mut drv::uart::UartWriter<world::Real>) {
+    true
+});
 
 pub struct PageTableController<A = Default>
 where A : VolatileAccess {
@@ -123,8 +147,7 @@ where A : VolatileAccess {
                 PTE_ATTRS_RAM
             };
 
-            table[i] = PTE_TYPE_BLOCK | attr | addr;
-            //A::write_u64(pte_addr, ); ?
+            table[i] = Pte::from_u64(pte::TYPE_BLOCK | attr | addr);
         }
     }
 

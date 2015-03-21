@@ -30,15 +30,17 @@ mod mm;
 #[no_mangle]
 pub extern "C" fn main()
 {
+    let mut world = titanium::world::Real;
+
     if arch::cpu_id() == 0 {
-        mem::init();
+        mem::init(&mut world);
         mm::init();
     }
 
     let mut uart = PL011::new(0x1c090000);
-    uart.init();
+    uart.init(&mut world);
 
-    let mut writer = UartWriter::new(&uart);
+    let mut writer = UartWriter::new(&mut world, &uart);
     titanium::selftest::selftest(&mut writer);
 
 

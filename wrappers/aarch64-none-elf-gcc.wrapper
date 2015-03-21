@@ -1,7 +1,6 @@
 #!/bin/sh
 
 (
-echo "R $RELEASE"
 exec aarch64-none-elf-gcc -flto -T"src/arch/$ARCH/kernel.ld" -nostdlib "-Wl,--start-group" $@ "-Wl,--end-group"
-) > /tmp/bla
+)
 
