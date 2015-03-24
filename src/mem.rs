@@ -1,8 +1,5 @@
 use core::intrinsics::{volatile_set_memory};
 
-use titanium::World;
-use titanium::world;
-
 extern {
     static mut _bss_clear_start: u8;
     static mut _bss_clear_end: u8;
@@ -17,9 +14,6 @@ fn bbs_memzero() {
     }
 }
 
-pub fn init(w : &mut world::Real) {
-
-    w.local_irqs_disable();
-
+pub fn preinit() {
     bbs_memzero();
 }

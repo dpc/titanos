@@ -5,15 +5,15 @@ use core::option::Option;
 use core::option::Option::{Some, None};
 use core::intrinsics::transmute;
 
-use titanium::io::{VolatileAccess, Default};
 use titanium::arch::reg::*;
 use titanium::arch::mmu::*;
 use titanium::arch::*;
 use titanium::consts::*;
 pub use titanium::drv;
-pub use titanium::world;
+pub use titanium::hw;
 
 use mm::PageArena;
+use World;
 
 const ENTRIES : usize = 8192;
 const _PER_LEVEL : u64 = 13;
@@ -46,11 +46,11 @@ impl Pte {
         Pte(val)
     }
 
-    fn as_table(&self) -> Option<&PageTable> {
+    fn as_table(&self) -> Option<&PageTableRaw> {
         let &Pte(p) = self;
 
         if pte::TYPE::from(p) == pte::TYPE_TABLE {
-            Some(unsafe { transmute(self) })
+            Some(unsafe { transmute(pte::ADDR::from(p)) })
         } else {
             None
         }
@@ -58,12 +58,33 @@ impl Pte {
 }
 
 #[repr(C)]
-struct PageTable {
+struct PageTableRaw {
     pub entries : [Pte; ENTRIES],
 }
 
+struct PageTable {
+    raw: &'static mut PageTableRaw,
+    level : u8,
+}
 
-impl core::ops::Index<usize> for PageTable {
+impl PageTable {
+    pub fn map_recv(&mut self, start_va : u64, start_pa : u64, size : u64, attr : u64) {
+
+        let mut va = start_va;
+        let mut pa = start_va;
+        let region_size = REGION_SIZE[self.level as usize];
+        let idx_mask = IDX_MASK[self.level as usize];
+        let sub_mask = REGION_SIZE[self.level as usize] - 1;
+
+        loop {
+            let i = idx_mask & va;
+            let needs_subtable = (va & sub_mask != 0) || (pa & sub_mask != 0);
+
+        }
+    }
+}
+
+impl core::ops::Index<usize> for PageTableRaw {
     type Output = Pte;
 
     fn index<'a>(&'a self, idx : &usize) -> &'a Pte {
@@ -71,89 +92,48 @@ impl core::ops::Index<usize> for PageTable {
     }
 }
 
-impl core::ops::IndexMut<usize> for PageTable {
+impl core::ops::IndexMut<usize> for PageTableRaw {
     fn index_mut<'a>(&'a mut self, idx : &usize) -> &'a mut Pte {
         &mut self.entries[*idx]
     }
 }
 
-selftest!(page_table_size (_bla : &mut drv::uart::UartWriter<world::Real>) {
-    mem::size_of::<PageTable>() == PAGE_SIZE as usize
+selftest!(page_table_size (_bla : &mut drv::uart::UartWriter) {
+    mem::size_of::<PageTableRaw>() == PAGE_SIZE as usize
 });
 
-selftest!(page_table (_bla : &mut drv::uart::UartWriter<world::Real>) {
-    true
-});
-
-pub struct PageTableController<A = Default>
-where A : VolatileAccess {
-    start : usize,
-    _access : A,
+pub struct PageTableRoot {
+    root : u64,
+    level : u8,
 }
 
-impl PageTableController<Default> {
-    pub fn new(arena : &mut PageArena) -> PageTableController<Default> {
-        let start = arena.get();
+impl PageTableRoot {
+    pub fn new(world : &mut World<hw::Real>) -> PageTableRoot {
+        let start = world.page_alloc.get();
 
-        PageTableController {
-            start: start.unwrap(),
-            _access: Default,
+        PageTableRoot {
+            root: start.unwrap() as u64,
+            level: START_LEVEL as u8,
         }
     }
 }
 
-impl<A> PageTableController<A>
-where A : VolatileAccess {
+impl PageTableRoot {
 
-    pub fn root(&self) -> &mut PageTable {
-        unsafe {
-            mem::transmute(self.start)
-        }
-    }
-
-    pub fn map_recv(&self, start_va : u64, start_pa : u64, size : u64, attr : u64, level : usize) {
-
-        let mut va = start_va;
-        let mut pa = start_va;
-        let region_size = REGION_SIZE[level as usize];
-        let idx_mask = IDX_MASK[level];
-        let sub_mask = REGION_SIZE[level] - 1;
-
-        loop {
-            let i = idx_mask & va;
-            let needs_block = (va & sub_mask != 0) || (pa & sub_mask != 0);
-
+    pub fn root(&self) -> PageTable {
+        PageTable {
+            raw: unsafe { mem::transmute(self.root) },
+            level: START_LEVEL as u8,
         }
     }
 
     pub fn map(&self, va : u64, pa : u64, size : u64) {
-
-        let level = START_LEVEL as usize;
-
-        self.map_recv(va, pa, size, 0, level);
-    }
-
-
-    // TODO: This is so lame ...
-    pub fn map_all(&self) {
-        let table = self.root();
-
-        for i in (0..PAGE_SIZE as usize / 8) {
-
-            let addr = (i << SZ_512MB_SHIFT) as u64;
-            let attr = if addr < 0x80000000 {
-                PTE_ATTRS_MMIO
-            } else {
-                PTE_ATTRS_RAM
-            };
-
-            table[i] = Pte::from_u64(pte::TYPE_BLOCK | attr | addr);
-        }
+        self.root().map_recv(va, pa, size, 0);
     }
 
     pub fn start(&self) {
         let asid = 0;
-        let addr = self.start as u64; // TODO: check alignment
+        let addr = self.root; // TODO: check alignment
 
         ttbr0_el1::write(
             asid << ttbr0_el1::ASID::SHIFT |

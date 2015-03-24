@@ -1,8 +1,10 @@
 #![allow(unused)]
 use core::option::Option;
 
-use arch::PageTableController;
+use arch::PageTableRoot;
 use arch::PAGE_SIZE;
+use World;
+use titanium::hw;
 
 extern {
     static mut _pt_start: u8;
@@ -37,12 +39,24 @@ impl PageArena {
     }
 }
 
-pub fn init() {
+static mut pool : PageArena = PageArena {
+    _start: 0,
+    end: 0,
+    current: 0,
+};
+
+pub fn preinit() -> &'static mut PageArena {
     let start : usize = unsafe {&_pt_start} as *const _ as usize;
     let end : usize = unsafe {&_pt_end} as *const _ as usize;
-    let mut arena = PageArena::new(start, end);
-    let table = PageTableController::new(&mut arena);
+    unsafe {
+        pool._start = start;
+        pool.current = start;
+        pool.end = end;
 
-//    table.map_all();
-//    table.start();
+    &mut pool
+    }
+}
+
+pub fn init(world : &mut World<hw::Real>) {
+    let _table = PageTableRoot::new(world);
 }
