@@ -1,13 +1,20 @@
 [package]
 name = "titanos"
 version = "0.0.1"
-authors = ["Dawid Ciężarkiewicz <dpc@ucore.info>"]
+authors = ["Dawid Ciężarkiewicz <dpc@dpc.pw>"]
 
 [profile.release]
 opt-level = 3
-debug = false
+debug = true
 rpath = false
 lto = true
+
+[profile.dev]
+opt-level = 1
+debug = true
+rpath = false
+lto = false
+debug-assertions = true
 
 [features]
 default = []

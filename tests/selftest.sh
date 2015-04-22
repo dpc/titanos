@@ -1,5 +1,4 @@
 export SELFTEST=1
-export RELEASE=1
 
 make || exit 1
 

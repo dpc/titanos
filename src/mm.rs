@@ -1,4 +1,3 @@
-#![allow(unused)]
 use core::option::Option;
 
 use arch::PageTableRoot;

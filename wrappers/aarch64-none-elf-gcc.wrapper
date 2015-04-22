@@ -1,6 +1,8 @@
 #!/bin/sh
 
-(
-exec aarch64-none-elf-gcc -flto -T"src/arch/$ARCH/kernel.ld" -nostdlib "-Wl,--start-group" $@ "-Wl,--end-group"
-)
 
+exec aarch64-none-elf-gcc \
+	-T"src/arch/$ARCH/kernel.ld" \
+	-nostdlib \
+	-flto \
+	"-Wl,--start-group" $@ "-Wl,--end-group"

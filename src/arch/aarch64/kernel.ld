@@ -19,9 +19,9 @@ SECTIONS
     *(.glue_7t)
     *(.eh_frame)
     . = ALIGN(8);
-    PROVIDE_HIDDEN (_selftest_start = .);
-    KEEP (*(.titanium.selftest))
-    PROVIDE_HIDDEN (_selftest_end = .);
+    _selftest_start = .;
+    KEEP (*(.titanium_selftest))
+    _selftest_end = .;
   } >RAM
 
 

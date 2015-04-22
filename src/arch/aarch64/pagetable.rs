@@ -87,14 +87,14 @@ impl PageTable {
 impl core::ops::Index<usize> for PageTableRaw {
     type Output = Pte;
 
-    fn index<'a>(&'a self, idx : &usize) -> &'a Pte {
-        &self.entries[*idx]
+    fn index<'a>(&'a self, idx : usize) -> &'a Pte {
+        &self.entries[idx]
     }
 }
 
 impl core::ops::IndexMut<usize> for PageTableRaw {
-    fn index_mut<'a>(&'a mut self, idx : &usize) -> &'a mut Pte {
-        &mut self.entries[*idx]
+    fn index_mut<'a>(&'a mut self, idx : usize) -> &'a mut Pte {
+        &mut self.entries[idx]
     }
 }
 

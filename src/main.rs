@@ -5,6 +5,7 @@
 #![feature(asm)]
 #![feature(lang_items)]
 #![feature(static_assert)]
+#![allow(unused)]
 
 #[macro_use]
 extern crate core;
@@ -19,6 +20,7 @@ use core::intrinsics::transmute;
 
 use core::fmt::Write;
 
+use titanium::drv;
 use titanium::drv::{Driver};
 use titanium::drv::uart;
 use titanium::hw;
@@ -30,13 +32,14 @@ mod arch;
 mod mem;
 mod mm;
 
-struct World<H : 'static>
+pub struct World<H : 'static>
 where H : hw::HW
 {
     pub hw : H,
     pub uart : &'static mut uart::UartWriter,
     pub page_alloc :  &'static mut mm::PageArena,
 }
+
 
 #[no_mangle]
 pub extern "C" fn main() {
