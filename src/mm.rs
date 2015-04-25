@@ -1,6 +1,5 @@
 use core::option::Option;
 
-use arch::PageTableRoot;
 use arch::PAGE_SIZE;
 use World;
 use titanium::hw;
@@ -57,5 +56,5 @@ pub fn preinit() -> &'static mut PageArena {
 }
 
 pub fn init(world : &mut World<hw::Real>) {
-    let _table = PageTableRoot::new(world);
+    //let _table = PageTableRoot::new(world);
 }

@@ -1,7 +1,6 @@
 mod pagetable;
 
 use titanium::arch::reg::mpidr_el1;
-pub use self::pagetable::{PageTableRoot};
 
 pub const PAGE_SIZE : usize = 64 * 1024;
 

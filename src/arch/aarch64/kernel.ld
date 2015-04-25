@@ -20,7 +20,7 @@ SECTIONS
     *(.eh_frame)
     . = ALIGN(8);
     _selftest_start = .;
-    KEEP (*(.titanium_selftest))
+    KEEP (*(.titanium.selftest))
     _selftest_end = .;
   } >RAM
 

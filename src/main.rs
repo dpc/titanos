@@ -37,7 +37,7 @@ where H : hw::HW
 {
     pub hw : H,
     pub uart : &'static mut uart::UartWriter,
-    pub page_alloc :  &'static mut mm::PageArena,
+    pub page_pool :  &'static mut mm::PageArena,
 }
 
 
@@ -52,7 +52,7 @@ pub extern "C" fn main() {
         let mut world : World<hw::Real> = World {
             hw: hw::Real,
             uart: unsafe { transmute(&mut dummy_uart as &mut titanium::drv::uart::UartWriter) },
-            page_alloc: page_arena,
+            page_pool : page_arena,
         };
 
 
