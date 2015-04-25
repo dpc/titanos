@@ -1,4 +1,4 @@
-mod pagetable;
+pub mod pagetable;
 
 use titanium::arch::reg::mpidr_el1;
 

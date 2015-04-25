@@ -166,7 +166,7 @@ impl<'a> PteMut<'a> {
 
 #[repr(C)]
 struct PageTableRaw {
-    pub entries : [PteRaw; ENTRIES],
+    entries : [PteRaw; ENTRIES],
 }
 
 struct PageTable<'a> {
@@ -269,9 +269,10 @@ impl<'a> PageTableMut<'a> {
 
 
 
-selftest!(page_table_size (_bla : &mut drv::uart::UartWriter) {
+selftest!(fn page_table_size(_uart) {
     mem::size_of::<PageTableRaw>() == PAGE_SIZE as usize
 });
+
 /*
 pub struct PageTableRoot {
     root : u64,
