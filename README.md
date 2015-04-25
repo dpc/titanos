@@ -1,5 +1,7 @@
 # Titanos
 
+[![Build Status](https://travis-ci.org/dpc/titanos.svg?branch=master)](https://travis-ci.org/dpc/titanos)
+
 Titanos is an exercise in writing a kernel in Rust programming language.
 
 Immediate goal is to complete basic functionality targeting ARMv8 (aarch64)
