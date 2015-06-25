@@ -5,6 +5,7 @@
 #![feature(asm)]
 #![feature(lang_items)]
 #![feature(static_assert)]
+#![feature(core_intrinsics)]
 #![allow(unused)]
 
 #[macro_use]
