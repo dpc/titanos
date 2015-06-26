@@ -4,7 +4,7 @@
 #![feature(core)]
 #![feature(asm)]
 #![feature(lang_items)]
-#![feature(static_assert)]
+#![feature(custom_attribute)]
 #![feature(core_intrinsics)]
 #![allow(unused)]
 
@@ -27,6 +27,8 @@ use titanium::drv::uart;
 use titanium::hw;
 
 
+use arch::pagetable;
+
 use arm_pl011::PL011;
 
 mod arch;
@@ -38,7 +40,7 @@ where H : hw::HW
 {
     pub hw : H,
     pub uart : &'static mut uart::UartWriter,
-    pub page_pool :  &'static mut mm::PageArena,
+    pub page_pool : &'static mut mm::PageArena,
 }
 
 
@@ -56,7 +58,6 @@ pub extern "C" fn main() {
             page_pool : page_arena,
         };
 
-
         let mut uart = PL011::new(0x1c090000);
         uart.init(&mut world.hw);
 
@@ -66,9 +67,13 @@ pub extern "C" fn main() {
             );
 
         unsafe { world.uart = transmute(&mut writer as &mut titanium::drv::uart::UartWriter) };
+        writeln!(world.uart, "Self or not").unwrap();
         titanium::selftest::selftest(&mut writer);
 
-        write!(world.uart, "Hello Embedded World!").unwrap();
+//        writeln!(world.uart, "THE {:x} start: {:x} end: {:x} current: {:x}", world.page_pool as *const _ as usize, world.page_pool.start, world.page_pool.end, world.page_pool.current).unwrap();
+        writeln!(world.uart, "Hello Embedded World!").unwrap();
+
+        pagetable::init(&mut world);
 
     }
 

@@ -5,14 +5,14 @@ use World;
 use titanium::hw;
 
 extern {
-    static mut _pt_start: u8;
-    static mut _pt_end: u8;
+    static _pt_start: u8;
+    static _pt_end: u8;
 }
 
 pub struct PageArena {
-    _start : usize,
-    end : usize,
-    current : usize,
+    pub start : usize,
+    pub end : usize,
+    pub current : usize,
 }
 
 impl PageArena {
@@ -20,7 +20,7 @@ impl PageArena {
     pub fn new(start : usize, end : usize) -> PageArena {
         // TODO: check alignment and bug if wrong
         PageArena {
-            _start: start,
+            start: start,
             end: end,
             current: start,
         }
@@ -38,20 +38,20 @@ impl PageArena {
 }
 
 static mut pool : PageArena = PageArena {
-    _start: 0,
+    start: 0,
     end: 0,
     current: 0,
 };
 
 pub fn preinit() -> &'static mut PageArena {
-    let start : usize = unsafe {&_pt_start} as *const _ as usize;
-    let end : usize = unsafe {&_pt_end} as *const _ as usize;
+    let start : usize = &_pt_start as *const u8 as usize;
+    let end : usize = &_pt_end as *const u8 as usize;
     unsafe {
-        pool._start = start;
-        pool.current = start;
+        pool.start = start;
         pool.end = end;
+        pool.current = start;
 
-    &mut pool
+        &mut pool
     }
 }
 

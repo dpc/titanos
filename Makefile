@@ -84,7 +84,7 @@ $(O)/titanos: $(DEP_O)/libcompiler-rt.a FORCE
 	PATH=wrappers/:$$PATH cargo build $(CARGOFLAGS) --target $(TARGET_FILE) --verbose
 
 .PHONY: doc
-doc: FORCE
+doc:
 	@echo "Sorry, this does not work ATM: https://github.com/rust-lang/cargo/issues/1427"
 	PATH=wrappers/:$$PATH cargo doc $(CARGOFLAGS) --target $(TARGET_FILE)
 

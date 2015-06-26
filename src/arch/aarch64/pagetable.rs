@@ -49,14 +49,16 @@ struct PteRaw(u64);
 /// and the level of it
 struct Pte<'a> {
     raw : &'a PteRaw,
-    level : u8
+    level : u8,
+    va : u64,
 }
 
 /// PteMut is a mut reference to Raw PTE
 /// and the level of it
 struct PteMut<'a> {
     raw : &'a mut PteRaw,
-    level : u8
+    level : u8,
+    va : u64,
 }
 
 impl<'a> Pte<'a> {
@@ -74,15 +76,15 @@ impl<'a> Pte<'a> {
     }
 
     fn is_table(&mut self) -> bool {
-        pte::TYPE::from(*self.as_raw()) == pte::TYPE_TABLE || self.level == END_LEVEL
+        (pte::TYPE::from(*self.as_raw()) == pte::TYPE_TABLE) && (self.level != END_LEVEL)
     }
 
     fn as_table<'b>(&'b mut self) -> PageTable<'b> {
         debug_assert!(self.is_table());
-        let &raw = self.as_raw();
         PageTable{
-            raw: unsafe { transmute(pte::ADDR::from(raw)) },
-            level: self.level + 1
+            raw: unsafe { transmute(pte::ADDR::MASK & self.as_raw()) },
+            level: self.level + 1,
+            va: self.va,
         }
     }
 }
@@ -98,14 +100,20 @@ impl<'a> PteMut<'a> {
     }
 
     fn write(&mut self, mapping : Mapping) {
+        debug_assert!(mapping.va == self.va);
         debug_assert!(mapping.size == REGION_SIZE[self.level as usize]);
-        debug_assert!(mapping.attr & !(pte::HATTRS::MASK | pte::LATTRS::MASK) == 0);
+        debug_assert!(mapping.attr & !(pte::BLOCK_UATTRS::MASK | pte::BLOCK_LATTRS::MASK | pte::TABLE_ATTRS::MASK) == 0);
         debug_assert!(mapping.pa & !pte::ADDR::MASK == 0);
         debug_assert!(mapping.va & !pte::ADDR::MASK == 0);
         debug_assert!(mapping.pa & (mapping.size - 1) == 0);
         debug_assert!(mapping.va & (mapping.size - 1) == 0);
 
-        *self.as_raw() = mapping.pa | mapping.attr;
+        *self.as_raw() = mapping.pa | mapping.attr |
+            if self.level == END_LEVEL {
+                pte::TYPE_TABLE << pte::TYPE::SHIFT
+            } else {
+                pte::TYPE_BLOCK << pte::TYPE::SHIFT
+            };
     }
 
     fn can_be_table(&self) -> bool {
@@ -113,13 +121,15 @@ impl<'a> PteMut<'a> {
     }
 
     /// Create new table in place of invalid PTE
-    fn create_table<'b, 'w, H>(&'b mut self, world : &'w mut World<H>, mapping : Mapping) -> PageTableMut<'b>
+    fn create_table<'b, 'w, H>(&'b mut self, world : &'w mut World<H>, attrs : u64) -> PageTableMut<'b>
         where H : hw::HW
     {
+        debug_assert!(!self.is_table());
+        debug_assert!(!self.is_valid());
         debug_assert!(self.can_be_table());
 
         let start = world.page_pool.get().unwrap();
-        *self.as_raw()= start as u64 | mapping.attr | pte::TYPE_TABLE << pte::TYPE::SHIFT;
+        *self.as_raw() = start as u64 | (pte::TABLE_ATTRS::MASK & attrs) | pte::TYPE_TABLE << pte::TYPE::SHIFT;
 
         for idx in 0..ENTRIES {
             self.as_table_mut().pte(idx).clear();
@@ -129,18 +139,23 @@ impl<'a> PteMut<'a> {
     }
 
     /// Rewrite valid PTE as TABLE of finer granularity
-    fn expand_to_table<'b, 'w, H>(&'b mut self, world : &'w mut World<H>, mut mapping : Mapping) -> PageTableMut<'b>
+    fn expand_to_table<'b, 'w, H>(&'b mut self, world : &'w mut World<H>) -> PageTableMut<'b>
         where H : hw::HW
     {
         debug_assert!(self.can_be_table());
 
-        let start = world.page_pool.get().unwrap();
-
         let old_raw = *self.as_raw();
-        mapping.va = pte::ADDR::from(old_raw);
-        mapping.attr = pte::HATTRS::from(old_raw) | pte::LATTRS::from(old_raw);
 
-        *self.as_raw() = start as u64 | mapping.attr | pte::TYPE_TABLE << pte::TYPE::SHIFT;
+        let start = world.page_pool.get().unwrap();
+        let attrs = (pte::BLOCK_UATTRS::MASK | pte::BLOCK_LATTRS::MASK | pte::TABLE_ATTRS::MASK) & old_raw;
+        *self.as_raw() = start as u64 | attrs | (pte::TYPE_TABLE << pte::TYPE::SHIFT);
+
+        let mapping = Mapping {
+            va: self.va,
+            size: REGION_SIZE[self.level as usize],
+            pa:  pte::ADDR::MASK & old_raw,
+            attr: attrs,
+        };
 
         self.as_table_mut().map(world, mapping);
 
@@ -148,35 +163,41 @@ impl<'a> PteMut<'a> {
     }
 
     fn is_valid(&mut self) -> bool {
-        pte::TYPE::from(*self.as_raw()) == pte::TYPE_INVALID
+        pte::TYPE::from(*self.as_raw()) != pte::TYPE_INVALID
     }
 
     fn is_table(&mut self) -> bool {
-        pte::TYPE::from(*self.as_raw()) == pte::TYPE_TABLE || self.level == END_LEVEL
+        (pte::TYPE::from(*self.as_raw()) == pte::TYPE_TABLE) && (self.level != END_LEVEL)
     }
 
     fn as_table_mut<'b>(&'b mut self) -> PageTableMut<'b> {
         debug_assert!(self.is_table());
         PageTableMut{
-            raw: unsafe { transmute(pte::ADDR::from(*self.as_raw())) },
-            level: self.level + 1
+            raw: unsafe { transmute(pte::ADDR::MASK & *self.as_raw()) },
+            level: self.level + 1,
+            va: self.va,
         }
     }
 }
 
+/// Page table as a an array of PTEs
 #[repr(C)]
 struct PageTableRaw {
     entries : [PteRaw; ENTRIES],
 }
 
+/// PageTable reference with level information
 struct PageTable<'a> {
     raw: &'a mut PageTableRaw,
     level : u8,
+    va : u64,
 }
 
+/// Mutable PageTable reference with level information
 struct PageTableMut<'a> {
     raw: &'a mut PageTableRaw,
     level : u8,
+    va : u64,
 }
 
 #[derive(Copy, Clone)]
@@ -192,7 +213,8 @@ impl<'a> PageTable<'a> {
         debug_assert!(i < ENTRIES);
         Pte {
             raw: &self.raw.entries[i],
-            level: self.level
+            level: self.level,
+            va: self.va + i as u64 * REGION_SIZE[self.level as usize],
         }
     }
 }
@@ -203,7 +225,8 @@ impl<'a> PageTableMut<'a> {
         debug_assert!(i < ENTRIES);
         PteMut {
             raw: &mut self.raw.entries[i],
-            level: self.level
+            level: self.level,
+            va: self.va + i as u64 * REGION_SIZE[self.level as usize],
         }
     }
 
@@ -212,20 +235,22 @@ impl<'a> PageTableMut<'a> {
         debug_assert!(i < ENTRIES);
         f(PteMut {
             raw: &mut self.raw.entries[i],
-            level: self.level
+            level: self.level,
+            va: self.va + i as u64 * REGION_SIZE[self.level as usize],
         });
     }
 
     pub fn map<'w, H>(&mut self, world : &'w mut World<H>, mapping : Mapping)
         where H : hw::HW
     {
-        let region_size = REGION_SIZE[self.level as usize];
+        let level = self.level;
+        let region_size = REGION_SIZE[level as usize];
         let region_mask = region_size - 1;
-        let idx_mask = IDX_MASK[self.level as usize];
-        let idx_shift = IDX_SHIFT[self.level as usize];
+        let idx_mask = IDX_MASK[level as usize];
+        let idx_shift = IDX_SHIFT[level as usize];
 
-        let mut pa = mapping.pa;
         let mut va = mapping.va;
+        let mut pa = mapping.pa;
         let mut left = mapping.size;
 
         loop {
@@ -240,30 +265,34 @@ impl<'a> PageTableMut<'a> {
 
             let idx = ((va & idx_mask) >> idx_shift) as usize;
 
-            let mapping = Mapping{pa: pa, va: va, size: size, attr: mapping.attr};
-
             self.with_pte(idx, |mut pte| {
+                let mapping = Mapping{
+                    va: va,
+                    pa: pa,
+                    size: size,
+                    attr: mapping.attr
+                };
                 if pte.is_table() {
                     let mut table = pte.as_table_mut();
                     table.map(world, mapping);
-                } else if region_size == size {
+                } else if (region_size == size) && ((pa & region_mask) == 0)  {
                     pte.write(mapping);
                 } else if pte.is_valid() {
-                    let mut table = pte.expand_to_table(world, mapping);
+                    let mut table = pte.expand_to_table(world);
                     table.map(world, mapping);
                 } else {
-                    let mut table = pte.create_table(world, mapping);
+                    let mut table = pte.create_table(world, mapping.attr);
                     table.map(world, mapping);
                 }
             });
 
+            debug_assert!(left >= size);
             left -= size;
             va += size;
             pa += size;
 
-            debug_assert!(left == 0 && ((va & !region_mask) == 0))
         }
-
+        debug_assert!(left == 0 && ((va & region_mask) == 0))
     }
 }
 
@@ -333,3 +362,40 @@ impl PageTableRoot {
     }
 }
 */
+
+static mut root_pte : PteRaw = PteRaw(0);
+
+pub fn init<'w, H>(world : &'w mut World<H>)
+        where H : hw::HW
+{
+    let mut root = PteMut {
+        raw: unsafe { &mut root_pte },
+        level: START_LEVEL - 1,
+        va: 0,
+    };
+
+    let mapping = Mapping{
+        va: 0x0,
+        pa: 0x0,
+        size: 0x100000000,
+        attr: 0x0,
+    };
+
+    let mut table = root.create_table(world, 0);
+    table.map(world, mapping);
+
+    writeln!(world.uart, "").unwrap();
+    writeln!(world.uart, "").unwrap();
+
+    let mapping = Mapping{
+        va: 0x90000000,
+        pa: 0x80000000,
+        size: 0x10000000,
+        attr: 0x0,
+    };
+    table.map(world, mapping);
+
+
+
+    writeln!(world.uart, "DONE").unwrap();
+}
