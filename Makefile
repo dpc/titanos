@@ -1,15 +1,15 @@
 ifeq ($(RELEASE), 1)
-O ?= target/target/release
-DEP_O ?= target/target/release/deps
+O ?= target/aarch64/release
+DEP_O ?= target/aarch64/release/deps
 else
-O ?= target/target/debug
-DEP_O ?= target/target/debug/deps
+O ?= target/aarch64/debug
+DEP_O ?= target/aarch64/debug/deps
 endif
 
 ARCH ?= aarch64
 export ARCH
 
-TARGET_FILE=src/arch/$(ARCH)/target.json
+TARGET_FILE=src/arch/$(ARCH)/$(ARCH).json
 
 include src/arch/$(ARCH)/Makefile.include
 
@@ -80,18 +80,18 @@ $(DEP_O)/libcompiler-rt.a: $(RT_OBJS) $(TARGET_FILE)
 	@mkdir -p $(dir $@)
 	$(AR) rcs $@ $(RT_OBJS)
 
-$(O)/titanos: $(DEP_O)/libcompiler-rt.a FORCE
+$(O)/libtitanos.rlib: $(DEP_O)/libcompiler-rt.a FORCE
 	PATH=wrappers/:$$PATH cargo build $(CARGOFLAGS) --target $(TARGET_FILE) --verbose
 
 .PHONY: doc
-doc: FORCE
+doc:
 	@echo "Sorry, this does not work ATM: https://github.com/rust-lang/cargo/issues/1427"
 	PATH=wrappers/:$$PATH cargo doc $(CARGOFLAGS) --target $(TARGET_FILE)
 
-$(O)/titanos.hex: $(O)/titanos
+$(O)/titanos.hex: $(O)/libtitanos.rlib
 	$(OBJCOPY) -O ihex $(O)/titanos $(O)/titanos.hex
 
-$(O)/titanos.bin: $(O)/titanos
+$(O)/titanos.bin: $(O)/libtitanos.rlib
 	$(OBJCOPY) -O binary $(O)/titanos $(O)/titanos.bin
 
 .PHONY: clean

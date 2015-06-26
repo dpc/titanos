@@ -1,0 +1,17 @@
+[root]
+name = "titanium"
+version = "0.0.1"
+dependencies = [
+ "core 0.0.1 (git+https://github.com/dpc/libcore-git.rs.git)",
+ "selftest 0.0.1",
+]
+
+[[package]]
+name = "core"
+version = "0.0.1"
+source = "git+https://github.com/dpc/libcore-git.rs.git#d958dbcd7cf892210222e9111f67409bad46ee78"
+
+[[package]]
+name = "selftest"
+version = "0.0.1"
+

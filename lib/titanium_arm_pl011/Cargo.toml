@@ -1,0 +1,15 @@
+[package]
+name = "titanium_arm_pl011"
+version = "0.0.1"
+authors = ["Dawid Ciężarkiewicz <dpc@ucore.info>"]
+
+[lib]
+name = "arm_pl011"
+path = "lib.rs"
+
+[features]
+selftest = [ "titanium/selftest" ]
+
+[dependencies]
+core = { path = "../libcore-git" }
+titanium = { path = "../titanium" }

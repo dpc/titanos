@@ -16,8 +16,8 @@ _start:
 	ldr x11, =_boot_stack_end
 	read_cpuid x10
 	lsl x10, x10, #10
-	add x10, x10, x11
-	mov sp, x10
+	sub x11, x11, x10
+	mov sp, x11
 
 	ldr x10, =main
 	br x10

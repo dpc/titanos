@@ -52,10 +52,10 @@ SECTIONS
 
     . = ALIGN(64K);
     _pt_start = .;
-    . += 64K * 16;
+    . += 64K * 128;
     _pt_end = .;
 
-    . = ALIGN(8);
+    . = ALIGN(4K);
     *(.bss)
     *(.bss*)
     *(COMMON)
@@ -63,14 +63,14 @@ SECTIONS
     . = ALIGN(8);
     _bss_clear_end = .;
 
-    . = ALIGN(8);
+    . = ALIGN(4K);
     _boot_stack_start = .;
-    . += 1024;
+    . += 1024 * 4;
     _boot_stack_end = .;
 
-    . = ALIGN(8);
+    . = ALIGN(4K);
     _stack_start = .;
-    . += 1024;
+    . += 1024 * 4;
     _stack_end = .;
     _bss_end = .;
   } >RAM

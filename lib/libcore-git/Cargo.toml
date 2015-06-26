@@ -1,0 +1,10 @@
+[package]
+name = "core"
+version = "0.0.1"
+description = "Fetch and build libcore"
+authors = ["Dawid Ciężarkiewicz <dpc@dpc.pw>"]
+build = "build.rs"
+
+[lib]
+name = "core"
+path = "./rust/src/libcore/lib.rs"
