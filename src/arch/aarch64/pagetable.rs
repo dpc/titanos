@@ -128,7 +128,7 @@ impl<'a> PteMut<'a> {
         debug_assert!(!self.is_valid());
         debug_assert!(self.can_be_table());
 
-        let start = world.page_pool.get().unwrap();
+        let start = unsafe{&mut *(((*world).page_pool))}.get().unwrap();
         *self.as_raw() = start as u64 | (pte::TABLE_ATTRS::MASK & attrs) | pte::TYPE_TABLE << pte::TYPE::SHIFT;
 
         for idx in 0..ENTRIES {
@@ -146,7 +146,7 @@ impl<'a> PteMut<'a> {
 
         let old_raw = *self.as_raw();
 
-        let start = world.page_pool.get().unwrap();
+        let start = unsafe{&mut *((*world).page_pool)}.get().unwrap();
         let attrs = (pte::BLOCK_UATTRS::MASK | pte::BLOCK_LATTRS::MASK | pte::TABLE_ATTRS::MASK) & old_raw;
         *self.as_raw() = start as u64 | attrs | (pte::TYPE_TABLE << pte::TYPE::SHIFT);
 
@@ -368,6 +368,8 @@ static mut root_pte : PteRaw = PteRaw(0);
 pub fn init<'w, H>(world : &'w mut World<H>)
         where H : hw::HW
 {
+
+    assert!(false);
     let mut root = PteMut {
         raw: unsafe { &mut root_pte },
         level: START_LEVEL - 1,
@@ -384,8 +386,8 @@ pub fn init<'w, H>(world : &'w mut World<H>)
     let mut table = root.create_table(world, 0);
     table.map(world, mapping);
 
-    writeln!(world.uart, "").unwrap();
-    writeln!(world.uart, "").unwrap();
+    writeln!(unsafe{&mut *(world).uart}, "").unwrap();
+    writeln!(unsafe{&mut *(*world).uart}, "").unwrap();
 
     let mapping = Mapping{
         va: 0x90000000,
@@ -395,7 +397,5 @@ pub fn init<'w, H>(world : &'w mut World<H>)
     };
     table.map(world, mapping);
 
-
-
-    writeln!(world.uart, "DONE").unwrap();
+    writeln!(unsafe{&mut *(*world).uart}, "DONE").unwrap();
 }
