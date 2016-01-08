@@ -1,15 +1,15 @@
 ifeq ($(RELEASE), 1)
-O ?= target/target/release
-DEP_O ?= target/target/release/deps
+O ?= target/aarch64/release
+DEP_O ?= target/aarch64/release/deps
 else
-O ?= target/target/debug
-DEP_O ?= target/target/debug/deps
+O ?= target/aarch64/debug
+DEP_O ?= target/aarch64/debug/deps
 endif
 
 ARCH ?= aarch64
 export ARCH
 
-TARGET_FILE=src/arch/$(ARCH)/target.json
+TARGET_FILE=src/arch/$(ARCH)/$(ARCH).json
 
 include src/arch/$(ARCH)/Makefile.include
 

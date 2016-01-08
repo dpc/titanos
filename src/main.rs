@@ -71,19 +71,19 @@ static mut world : World<hw::Real> = World {
 
 #[no_mangle]
 pub extern "C" fn main() {
-
     arch::set_vbar();
 
     if arch::cpu_id() == 0 {
         mem::preinit();
         let mut dummy_uart = uart::DummyUartWriter;
-        let page_arena : &'static mut mm::PageArena = mm::preinit();
+        unsafe {
+            world.page_pool = mm::preinit();
+        }
 
         unsafe {
             world.int = 0xdeadbeaf;
             world.hw = hw::Real;
             world.uart = transmute(&mut dummy_uart as &mut uart::UartWriter);
-            world.page_pool = page_arena;
         }
 
         let mut uart = PL011::new(0x1c090000);
@@ -101,8 +101,6 @@ pub extern "C" fn main() {
         titanium::selftest::selftest(*unsafe{world.uart.as_mut()}.unwrap() );
 
         pr_info!("Hello Embedded World!");
-
-
     }
 
     pr_debug!("Ready...");
