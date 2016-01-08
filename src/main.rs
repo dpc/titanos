@@ -1,15 +1,11 @@
 #![no_std]
 #![no_main]
-#![feature(no_std)]
-#![feature(core)]
 #![feature(asm)]
+#![feature(const_fn)]
 #![feature(lang_items)]
 #![feature(custom_attribute)]
 #![feature(core_intrinsics)]
 #![allow(unused)]
-
-#[macro_use]
-extern crate core;
 
 #[macro_use]
 extern crate titanium;
@@ -33,6 +29,25 @@ use arm_pl011::PL011;
 
 use core::ptr;
 
+macro_rules! pr_info {
+    ($fmt:expr) => (
+
+        unsafe{
+            $crate::world.uart.as_mut()
+        }.unwrap().write_fmt(format_args!(concat!($fmt, "\n"))).unwrap()
+        );
+    ($fmt:expr, $($args:tt)*) => (
+
+        unsafe{
+            $crate::world.uart.as_mut()
+        }.unwrap().write_fmt(format_args!(concat!($fmt, "\n"), $($args)*)).unwrap()
+    );
+}
+
+macro_rules! pr_debug {
+    ($($args:tt)*) => (pr_info!($($args)*));
+}
+
 mod arch;
 mod mem;
 mod mm;
@@ -41,13 +56,18 @@ mod rust;
 pub struct World<H : 'static>
 where H : hw::HW
 {
+    pub int : u64,
     pub hw : H,
-    pub uart : *mut uart::UartWriter,
+    pub uart : Option<&'static mut uart::UartWriter>,
     pub page_pool : *mut mm::PageArena,
 }
 
-#[no_mangle]
-static mut world : *mut World<hw::Real> = 0 as *mut _;
+static mut world : World<hw::Real> = World {
+    int : 0xdeadbeaf,
+    hw: hw::Real,
+    uart: None,
+    page_pool: ptr::null_mut(),
+};
 
 #[no_mangle]
 pub extern "C" fn main() {
@@ -60,34 +80,31 @@ pub extern "C" fn main() {
         let page_arena : &'static mut mm::PageArena = mm::preinit();
 
         unsafe {
-            world = transmute (&World {
-            hw: hw::Real,
-            uart: transmute(&mut dummy_uart as &mut uart::UartWriter),
-            page_pool : page_arena,
-        })};
+            world.int = 0xdeadbeaf;
+            world.hw = hw::Real;
+            world.uart = transmute(&mut dummy_uart as &mut uart::UartWriter);
+            world.page_pool = page_arena;
+        }
 
         let mut uart = PL011::new(0x1c090000);
-        uart.init( unsafe{&mut (*world).hw});
+        uart.init( unsafe{&mut (world).hw});
 
         let mut writer = uart::BlockingUartWriter::<hw::Real>::new(
-            unsafe { transmute(&mut (*world).hw) },
+            unsafe { transmute(&mut (world).hw) },
             unsafe { transmute(&uart as &titanium::drv::Uart<hw::Real>) },
             );
 
-        unsafe { (*world).uart = transmute(&mut writer as &mut uart::UartWriter)};
+        unsafe { (world).uart = transmute(&mut writer as &mut uart::UartWriter)};
 
-        write!(unsafe{&mut *(*world).uart}, "S").unwrap();
-        write!(unsafe{&mut *(*world).uart}, "X").unwrap();
+        pr_debug!("Starting...");
+        pagetable::init(unsafe{&mut world});
+        titanium::selftest::selftest(*unsafe{world.uart.as_mut()}.unwrap() );
 
-        titanium::selftest::selftest(unsafe{&mut *(*world).uart});
-        write!(unsafe{&mut *(*world).uart}, "X").unwrap();
+        pr_info!("Hello Embedded World!");
 
-        write!(unsafe{&mut *(*world).uart}, "Y").unwrap();
-        writeln!(unsafe{&mut *(*world).uart}, "Hello Embedded World!").unwrap();
-
-        pagetable::init(unsafe{&mut (*world)});
 
     }
 
+    pr_debug!("Ready...");
     loop { }
 }

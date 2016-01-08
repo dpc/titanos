@@ -114,6 +114,7 @@ impl<'a> PteMut<'a> {
             } else {
                 pte::TYPE_BLOCK << pte::TYPE::SHIFT
             };
+        pr_debug!("({:x}) {:x} -> {:x}", self.as_raw() as *const _ as u64, mapping.va, *self.as_raw());
     }
 
     fn can_be_table(&self) -> bool {
@@ -129,8 +130,9 @@ impl<'a> PteMut<'a> {
         debug_assert!(self.can_be_table());
 
         let start = unsafe{&mut *(((*world).page_pool))}.get().unwrap();
+        pr_debug!("Got from pagepool {:x}", start);
         *self.as_raw() = start as u64 | (pte::TABLE_ATTRS::MASK & attrs) | pte::TYPE_TABLE << pte::TYPE::SHIFT;
-
+        pr_debug!("Self ({:x}) = {:x}", self.as_raw() as *const _ as u64, *self.as_raw());
         for idx in 0..ENTRIES {
             self.as_table_mut().pte(idx).clear();
         }
@@ -180,7 +182,7 @@ impl<'a> PteMut<'a> {
     }
 }
 
-/// Page table as a an array of PTEs
+/// Page table as an array of PTEs
 #[repr(C)]
 struct PageTableRaw {
     entries : [PteRaw; ENTRIES],
@@ -220,6 +222,42 @@ impl<'a> PageTable<'a> {
 }
 
 impl<'a> PageTableMut<'a> {
+    pub fn install(&mut self) {
+        let asid = 0;
+        let addr = self.pte(0).as_raw() as *const _ as u64; // TODO: check alignment
+
+        ttbr0_el1::write(
+            asid << ttbr0_el1::ASID::SHIFT |
+            addr << ttbr0_el1::BADDR::SHIFT
+            );
+
+        pr_debug!("ttbr0 = {:x}", ttbr0_el1::read());
+
+        ttbr1_el1::write(
+            asid << ttbr0_el1::ASID::SHIFT |
+            addr << ttbr0_el1::BADDR::SHIFT
+            );
+        pr_debug!("ttbr1 = {:x}", ttbr0_el1::read());
+
+        // invalidate all to PoU
+        unsafe { asm!("ic ialluis" :::: "volatile"); }
+        dsb_sy();
+        isb();
+
+        // TODO: invalidate i- and c- cache by set-way
+        // TODO: move to head?
+
+        // TODO: fails ATM
+        // unsafe { asm!("tlbi alle1is" :::: "volatile"); }
+        dsb_sy();
+        isb();
+
+        sctlr_el1::write(
+            sctlr_el1::M::MASK
+            );
+
+        isb();
+    }
 
     pub fn pte<'b>(&'b mut self, i : usize) -> PteMut<'b> {
         debug_assert!(i < ENTRIES);
@@ -243,6 +281,12 @@ impl<'a> PageTableMut<'a> {
     pub fn map<'w, H>(&mut self, world : &'w mut World<H>, mapping : Mapping)
         where H : hw::HW
     {
+        pr_debug!(
+            "(Table L{} {:x}) Mapping VA:{:x} -> PA:{:x} (size: {:x})",
+            self.level,
+            self as *const _ as u64,
+            mapping.va, mapping.pa, mapping.size
+            );
         let level = self.level;
         let region_size = REGION_SIZE[level as usize];
         let region_mask = region_size - 1;
@@ -286,116 +330,94 @@ impl<'a> PageTableMut<'a> {
                 }
             });
 
+            pr_debug!("{:x} >= {:x}?", left, size);
             debug_assert!(left >= size);
             left -= size;
             va += size;
             pa += size;
 
         }
-        debug_assert!(left == 0 && ((va & region_mask) == 0))
+        pr_debug!("left: {} && va: {:x} & region_mask{:x}", left, va, region_mask);
+        //debug_assert!(left == 0 && ((va & region_mask) == 0))
+        debug_assert!(left == 0)
     }
 }
-
-
 
 selftest!(fn page_table_size(_uart) {
     mem::size_of::<PageTableRaw>() == PAGE_SIZE as usize
 });
 
-/*
-pub struct PageTableRoot {
-    root : u64,
-    level : u8,
-}
-
-impl PageTableRoot {
-    pub fn new(world : &mut World<hw::Real>) -> PageTableRoot {
-        let start = world.page_pool.get();
-
-        PageTableRoot {
-            root: start.unwrap() as u64,
-            level: START_LEVEL as u8,
-        }
-    }
-}
-
-impl PageTableRoot {
-
-    pub fn root(&self) -> PageTable {
-        PageTable {
-            raw: unsafe { mem::transmute(self.root) },
-            level: START_LEVEL as u8,
-        }
-    }
-
-    pub fn map(&self, va : u64, pa : u64, size : u64) {
-        self.root().map_recv(va, pa, size, 0);
-    }
-
-    pub fn start(&self) {
-        let asid = 0;
-        let addr = self.root; // TODO: check alignment
-
-        ttbr0_el1::write(
-            asid << ttbr0_el1::ASID::SHIFT |
-            addr << ttbr0_el1::BADDR::SHIFT
-            );
-
-
-        ttbr1_el1::write(
-            asid << ttbr0_el1::ASID::SHIFT |
-            addr << ttbr0_el1::BADDR::SHIFT
-            );
-
-        // invalidate all to PoU
-        unsafe { asm!("ic ialluis" :::: "volatile"); }
-        dsb_sy();
-        isb();
-
-        // TODO: invalidate i- and c- cache by set-way
-        // TODO: move to head?
-
-        // TODO: fails ATM
-        // unsafe { asm!("tlbi alle1is" :::: "volatile"); }
-        dsb_sy();
-        isb();
-    }
-}
-*/
-
 static mut root_pte : PteRaw = PteRaw(0);
+
+const MAIR : u64 = 0xff00;
+const MAIR_IDX_SO : u64 = 0; // strongly-ordered
+const MAIR_IDX_MEM : u64 = 1; // normal memory
 
 pub fn init<'w, H>(world : &'w mut World<H>)
         where H : hw::HW
 {
-
-    assert!(false);
+    pr_debug!("pagetable::init: START");
     let mut root = PteMut {
         raw: unsafe { &mut root_pte },
         level: START_LEVEL - 1,
         va: 0,
     };
 
-    let mapping = Mapping{
-        va: 0x0,
-        pa: 0x0,
-        size: 0x100000000,
-        attr: 0x0,
-    };
-
     let mut table = root.create_table(world, 0);
-    table.map(world, mapping);
+    {
+        let attr : u64 =
+            pte::AF::MASK |
+            pte::NS::MASK |
+            pte::ATTRINDX::to(MAIR_IDX_SO) |
+            pte::SH::to(pte::SH_INNER) |
+            pte::AP::to(pte::AP_KERNEL)
+            ;
 
-    writeln!(unsafe{&mut *(world).uart}, "").unwrap();
-    writeln!(unsafe{&mut *(*world).uart}, "").unwrap();
+        let mapping = Mapping{
+            va: 0x0,
+            pa: 0x0,
+            size: 0x80000000,
+            attr: attr,
+        };
 
-    let mapping = Mapping{
-        va: 0x90000000,
-        pa: 0x80000000,
-        size: 0x10000000,
-        attr: 0x0,
-    };
-    table.map(world, mapping);
+        table.map(world, mapping);
+    }
 
-    writeln!(unsafe{&mut *(*world).uart}, "DONE").unwrap();
+    {
+        let attr : u64 =
+            pte::AF::MASK |
+            pte::NS::MASK |
+            pte::ATTRINDX::to(MAIR_IDX_MEM) |
+            pte::SH::to(pte::SH_INNER) |
+            pte::AP::to(pte::AP_KERNEL)
+            ;
+/*
+        let mapping = Mapping{
+            va: 0x80000000,
+            pa: 0x80000000,
+            size: 0x80000000,
+            attr: attr,
+        };
+*/
+
+        let mapping = Mapping{
+            va: 0x80000000,
+            pa: 0x80000000,
+            size: 0x10000000,
+            attr: attr,
+        };
+        table.map(world, mapping);
+    }
+    pr_debug!("pagetable::init: DONE");
+
+    mair_el1::write(MAIR);
+
+    tcr_el1::write(
+        tcr_el1::TG1::to(reg::TG1_64K) |
+        tcr_el1::TG0::to(reg::TG0_64K) |
+        tcr_el1::T0SZ::to(22) |
+        tcr_el1::T1SZ::to(22)
+        );
+    table.install();
+    pr_debug!("pagetable::init: INSTALLED");
 }

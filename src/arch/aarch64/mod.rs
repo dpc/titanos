@@ -9,6 +9,8 @@ pub const PAGE_SIZE : usize = 64 * 1024;
 #[no_mangle]
 pub unsafe extern fn isr_handler_wrapper() {
     asm!("" :::: "volatile");
+    pr_info!("ISR");
+    loop {}
 }
 
 pub fn set_vbar() {

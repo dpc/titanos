@@ -5,7 +5,7 @@ use world;
 /// Entry point of panic from the libcore crate.
 #[lang = "panic_fmt"]
 pub extern fn rust_begin_unwind() -> ! {
-    writeln!(unsafe{&mut *(*world).uart}, "PANIC").unwrap();
+    pr_info!("PANIC");
     loop {}
 }
 
@@ -16,7 +16,7 @@ pub extern fn rust_begin_unwind() -> ! {
 #[cfg(not(test))] // in testing, use the original libstd's version
 #[lang = "stack_exhausted"]
 extern fn stack_exhausted() {
-    writeln!(unsafe{&mut *(*world).uart}, "PANIC: Stack exhausted").unwrap();
+    pr_info!("PANIC: Stack exhausted");
     loop {}
 }
 
@@ -25,6 +25,6 @@ extern fn stack_exhausted() {
 #[allow(private_no_mangle_fns)]
 extern fn rust_eh_personality()
 {
-    writeln!(unsafe{&mut *(*world).uart}, "PANIC: eh_personality?").unwrap();
+    pr_info!("PANIC: eh_personality?");
     loop {}
 }
