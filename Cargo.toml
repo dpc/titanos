@@ -19,7 +19,7 @@ debug-assertions = true
 [features]
 default = []
 
-selftest = [ "titanium/selftest" ]
+selftest = [ "titanium/selftest", "titanium_arm_pl011/selftest" ]
 
 [[bin]]
 name = "titanos"

@@ -1,14 +1,17 @@
 /// Some lang items required by libcore and Rust
 use world;
+use core;
 
 #[cfg(not(test))]
 /// Entry point of panic from the libcore crate.
 #[lang = "panic_fmt"]
-pub extern fn rust_begin_unwind() -> ! {
-    pr_info!("PANIC");
+extern fn panic_fmt(args: &core::fmt::Arguments,
+                    file: &str,
+                    line: u32) -> ! {
+
+    pr_info!("PANIC: {}:{}", file, line);
     loop {}
 }
-
 /// This function is invoked from rust's current __morestack function. Segmented
 /// stacks are currently not enabled as segmented stacks, but rather one giant
 /// stack segment. This means that whenever we run out of stack, we want to

@@ -7,6 +7,9 @@ authors = ["Dawid Ciężarkiewicz <dpc@ucore.info>"]
 name = "arm_pl011"
 path = "lib.rs"
 
+[features]
+selftest = [ "titanium/selftest" ]
+
 [dependencies]
 core = { path = "../libcore-git" }
 titanium = { path = "../titanium" }

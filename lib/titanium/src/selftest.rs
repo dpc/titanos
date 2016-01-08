@@ -5,7 +5,6 @@ use arch;
 
 pub use drv;
 
-
 extern {
     static _selftest_start: u8;
     static _selftest_end: u8;
@@ -26,8 +25,9 @@ macro_rules! selftest {
          * We need __attribute__((used)) or a workaround. */
         #[allow(dead_code)]
         #[allow(non_upper_case_globals)]
-        #[cfg_attr(not(feature = "selftest"), link_section = ".titanium.selftest")]
-        #[cfg_attr(feature = "selftest", link_section = ".titanium.discard")]
+        #[linkage="external"]
+        #[cfg_attr(feature = "selftest", link_section = ".titanium.selftest")]
+        #[cfg_attr(not(feature = "selftest"), link_section = ".titanium.discard")]
         pub static $name : &'static ::titanium::selftest::TestEntry = &::titanium::selftest::TestEntry {
             func: { fn f($uart: &mut ::titanium::drv::uart::UartWriter) -> bool {
                 $code

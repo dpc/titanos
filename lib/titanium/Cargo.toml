@@ -5,10 +5,11 @@ authors = ["Dawid Ciężarkiewicz <dpc@ucore.info>"]
 
 [features]
 default = []
+selftest = []
 
 [dependencies]
 core = { path = "../libcore-git" }
 
-[dependencies.selftest]
-path = "selftest"
-optional = true
+#[dependencies.selftest]
+#path = "selftest"
+#optional = true

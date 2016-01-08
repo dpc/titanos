@@ -1,6 +1,5 @@
 #![no_std]
-#![feature(no_std)]
-#![feature(core)]
+#![feature(linkage)]
 
 #[macro_use]
 extern crate titanium;

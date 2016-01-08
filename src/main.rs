@@ -2,6 +2,7 @@
 #![no_main]
 #![feature(asm)]
 #![feature(const_fn)]
+#![feature(linkage)]
 #![feature(lang_items)]
 #![feature(custom_attribute)]
 #![feature(core_intrinsics)]
@@ -47,6 +48,10 @@ macro_rules! pr_info {
 macro_rules! pr_debug {
     ($($args:tt)*) => (pr_info!($($args)*));
 }
+
+selftest!(fn basic_selftest(_uart) {
+    true
+});
 
 mod arch;
 mod mem;

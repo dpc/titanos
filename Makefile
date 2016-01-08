@@ -80,7 +80,7 @@ $(DEP_O)/libcompiler-rt.a: $(RT_OBJS) $(TARGET_FILE)
 	@mkdir -p $(dir $@)
 	$(AR) rcs $@ $(RT_OBJS)
 
-$(O)/titanos: $(DEP_O)/libcompiler-rt.a FORCE
+$(O)/libtitanos.rlib: $(DEP_O)/libcompiler-rt.a FORCE
 	PATH=wrappers/:$$PATH cargo build $(CARGOFLAGS) --target $(TARGET_FILE) --verbose
 
 .PHONY: doc
@@ -88,10 +88,10 @@ doc:
 	@echo "Sorry, this does not work ATM: https://github.com/rust-lang/cargo/issues/1427"
 	PATH=wrappers/:$$PATH cargo doc $(CARGOFLAGS) --target $(TARGET_FILE)
 
-$(O)/titanos.hex: $(O)/titanos
+$(O)/titanos.hex: $(O)/libtitanos.rlib
 	$(OBJCOPY) -O ihex $(O)/titanos $(O)/titanos.hex
 
-$(O)/titanos.bin: $(O)/titanos
+$(O)/titanos.bin: $(O)/libtitanos.rlib
 	$(OBJCOPY) -O binary $(O)/titanos $(O)/titanos.bin
 
 .PHONY: clean
