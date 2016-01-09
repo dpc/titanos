@@ -101,13 +101,13 @@ pub extern "C" fn main() {
 
         unsafe { (world).uart = transmute(&mut writer as &mut uart::UartWriter)};
 
-        pr_debug!("Starting...");
+        pr_info!("Start...");
         pagetable::init(unsafe{&mut world});
         titanium::selftest::selftest(*unsafe{world.uart.as_mut()}.unwrap() );
 
         pr_info!("Hello Embedded World!");
     }
 
-    pr_debug!("Ready...");
+    pr_info!("Ready...");
     loop { }
 }

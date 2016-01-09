@@ -114,7 +114,6 @@ impl<'a> PteMut<'a> {
             } else {
                 pte::TYPE_BLOCK << pte::TYPE::SHIFT
             };
-        pr_debug!("({:x}) {:x} -> {:x}", self.as_raw() as *const _ as u64, mapping.va, *self.as_raw());
     }
 
     fn can_be_table(&self) -> bool {
@@ -130,9 +129,7 @@ impl<'a> PteMut<'a> {
         debug_assert!(self.can_be_table());
 
         let start = unsafe{&mut *(((*world).page_pool))}.get().unwrap();
-        pr_debug!("Got from pagepool {:x}", start);
         *self.as_raw() = start as u64 | (pte::TABLE_ATTRS::MASK & attrs) | pte::TYPE_TABLE << pte::TYPE::SHIFT;
-        pr_debug!("Self ({:x}) = {:x}", self.as_raw() as *const _ as u64, *self.as_raw());
         for idx in 0..ENTRIES {
             self.as_table_mut().pte(idx).clear();
         }
@@ -231,13 +228,10 @@ impl<'a> PageTableMut<'a> {
             addr << ttbr0_el1::BADDR::SHIFT
             );
 
-        pr_debug!("ttbr0 = {:x}", ttbr0_el1::read());
-
         ttbr1_el1::write(
             asid << ttbr0_el1::ASID::SHIFT |
             addr << ttbr0_el1::BADDR::SHIFT
             );
-        pr_debug!("ttbr1 = {:x}", ttbr0_el1::read());
 
         // invalidate all to PoU
         unsafe { asm!("ic ialluis" :::: "volatile"); }
@@ -281,12 +275,6 @@ impl<'a> PageTableMut<'a> {
     pub fn map<'w, H>(&mut self, world : &'w mut World<H>, mapping : Mapping)
         where H : hw::HW
     {
-        pr_debug!(
-            "(Table L{} {:x}) Mapping VA:{:x} -> PA:{:x} (size: {:x})",
-            self.level,
-            self as *const _ as u64,
-            mapping.va, mapping.pa, mapping.size
-            );
         let level = self.level;
         let region_size = REGION_SIZE[level as usize];
         let region_mask = region_size - 1;
@@ -330,15 +318,12 @@ impl<'a> PageTableMut<'a> {
                 }
             });
 
-            pr_debug!("{:x} >= {:x}?", left, size);
             debug_assert!(left >= size);
             left -= size;
             va += size;
             pa += size;
 
         }
-        pr_debug!("left: {} && va: {:x} & region_mask{:x}", left, va, region_mask);
-        //debug_assert!(left == 0 && ((va & region_mask) == 0))
         debug_assert!(left == 0)
     }
 }
@@ -356,7 +341,6 @@ const MAIR_IDX_MEM : u64 = 1; // normal memory
 pub fn init<'w, H>(world : &'w mut World<H>)
         where H : hw::HW
 {
-    pr_debug!("pagetable::init: START");
     let mut root = PteMut {
         raw: unsafe { &mut root_pte },
         level: START_LEVEL - 1,
@@ -391,24 +375,14 @@ pub fn init<'w, H>(world : &'w mut World<H>)
             pte::SH::to(pte::SH_INNER) |
             pte::AP::to(pte::AP_KERNEL)
             ;
-/*
         let mapping = Mapping{
             va: 0x80000000,
             pa: 0x80000000,
             size: 0x80000000,
             attr: attr,
         };
-*/
-
-        let mapping = Mapping{
-            va: 0x80000000,
-            pa: 0x80000000,
-            size: 0x10000000,
-            attr: attr,
-        };
         table.map(world, mapping);
     }
-    pr_debug!("pagetable::init: DONE");
 
     mair_el1::write(MAIR);
 
@@ -419,5 +393,4 @@ pub fn init<'w, H>(world : &'w mut World<H>)
         tcr_el1::T1SZ::to(22)
         );
     table.install();
-    pr_debug!("pagetable::init: INSTALLED");
 }
