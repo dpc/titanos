@@ -14,6 +14,7 @@ use titanium::consts::*;
 pub use titanium::drv;
 pub use titanium::hw;
 
+use core::ops;
 use mm::PageArena;
 use World;
 
@@ -59,6 +60,14 @@ struct PteMut<'a> {
     raw : &'a mut PteRaw,
     level : u8,
     va : u64,
+}
+
+impl<'a> ops::Deref for PteMut<'a> {
+    type Target = Pte<'a>;
+
+    fn deref(&self) -> &Pte<'a> {
+       unsafe { mem::transmute(&self) }
+    }
 }
 
 impl<'a> Pte<'a> {
