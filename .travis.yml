@@ -6,6 +6,7 @@ env:
   matrix:
     -
     - RELEASE=true
+    - SELFTEST=true
     - SELFTEST=true RELEASE=true
 
 notifications:
