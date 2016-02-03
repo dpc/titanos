@@ -17,7 +17,6 @@ pub mod macros;
 #[macro_use]
 pub mod arch;
 
-pub mod lang;
 pub mod drv;
 pub mod consts;
 pub mod hw;

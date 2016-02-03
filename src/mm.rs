@@ -27,12 +27,12 @@ impl PageArena {
     }
 
     pub fn get(&mut self) -> Option<usize> {
-        let ret = self.current + PAGE_SIZE;
-        if ret >= self.end {
-            Option::None
-        } else {
-            self.current = ret;
+        if self.current < self.end {
+            let ret = self.current;
+            self.current = ret + PAGE_SIZE;
             Option::Some(ret)
+        } else {
+            Option::None
         }
     }
 }

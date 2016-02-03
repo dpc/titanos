@@ -44,12 +44,11 @@ const PTE_ATTRS_RAM : u64 = pte::AP_RW << pte::AP::SHIFT;
 
 /// Raw PTE, being just u64
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 struct PteRaw(u64);
 
 /// PTE is a reference to Raw PTE
 /// and the level of it
-#[repr(C)]
 #[derive(Copy, Clone)]
 pub struct Pte<'a> {
     raw : &'a PteRaw,
@@ -59,19 +58,10 @@ pub struct Pte<'a> {
 
 /// PteMut is a mut reference to Raw PTE
 /// and the level of it
-#[repr(C)]
 pub struct PteMut<'a> {
     raw : &'a mut PteRaw,
     level : u8,
     va : u64,
-}
-
-impl<'a> ops::Deref for PteMut<'a> {
-    type Target = Pte<'a>;
-
-    fn deref(&self) -> &Pte<'a> {
-       unsafe { mem::transmute(&self) }
-    }
 }
 
 impl<'a> Pte<'a> {
@@ -103,13 +93,30 @@ impl<'a> Pte<'a> {
 }
 
 impl<'a> PteMut<'a> {
-    fn as_raw<'b>(&'b mut self) -> &'b mut u64 {
+    fn as_raw<'b>(&'b self) -> &'b u64 {
+        let &mut PteRaw(ref raw) = self.raw;
+        raw
+    }
+
+    fn as_raw_mut<'b>(&'b mut self) -> &'b mut u64 {
         let &mut PteRaw(ref mut raw) = self.raw;
         raw
     }
 
+    fn can_be_table(&self) -> bool {
+        self.level != END_LEVEL
+    }
+
+    fn is_valid(&self) -> bool {
+        pte::TYPE::from(*self.as_raw()) == pte::TYPE_INVALID
+    }
+
+    fn is_table(&self) -> bool {
+        (pte::TYPE::from(*self.as_raw()) == pte::TYPE_TABLE) && (self.level != END_LEVEL)
+    }
+
     fn clear(&mut self) {
-        *self.as_raw() = 0;
+        *self.as_raw_mut() = 0;
     }
 
     fn write(&mut self, mapping : Mapping) {
@@ -121,7 +128,7 @@ impl<'a> PteMut<'a> {
         debug_assert!(mapping.pa & (mapping.size - 1) == 0);
         debug_assert!(mapping.va & (mapping.size - 1) == 0);
 
-        *self.as_raw() = mapping.pa | mapping.attr |
+        *self.as_raw_mut() = mapping.pa | mapping.attr |
             if self.level == END_LEVEL {
                 pte::TYPE_TABLE << pte::TYPE::SHIFT
             } else {
@@ -138,7 +145,7 @@ impl<'a> PteMut<'a> {
         debug_assert!(self.can_be_table());
 
         let start = unsafe{&mut *(((*world).page_pool))}.get().unwrap();
-        *self.as_raw() = start as u64 | (pte::TABLE_ATTRS::MASK & attrs) | pte::TYPE_TABLE << pte::TYPE::SHIFT;
+        *self.as_raw_mut() = start as u64 | (pte::TABLE_ATTRS::MASK & attrs) | pte::TYPE_TABLE << pte::TYPE::SHIFT;
         for idx in 0..ENTRIES {
             self.as_table_mut().pte(idx).clear();
         }
@@ -156,7 +163,7 @@ impl<'a> PteMut<'a> {
 
         let start = unsafe{&mut *((*world).page_pool)}.get().unwrap();
         let attrs = (pte::BLOCK_UATTRS::MASK | pte::BLOCK_LATTRS::MASK | pte::TABLE_ATTRS::MASK) & old_raw;
-        *self.as_raw() = start as u64 | attrs | (pte::TYPE_TABLE << pte::TYPE::SHIFT);
+        *self.as_raw_mut() = start as u64 | attrs | (pte::TYPE_TABLE << pte::TYPE::SHIFT);
 
         let mapping = Mapping {
             va: self.va,
@@ -266,6 +273,7 @@ impl<'a> PageTableMut<'a> {
 
     pub fn with_pte<'b, F>(&'b mut self, i : usize, mut f : F)
         where F : FnMut(PteMut<'b>) {
+        debug_assert!(self.raw as *const _  as usize != 0);
         debug_assert!(i < ENTRIES);
         f(PteMut {
             raw: &mut self.raw.entries[i],
