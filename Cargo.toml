@@ -26,7 +26,7 @@ name = "titanos"
 path = "src/main.rs"
 
 [dependencies]
-core = { path = "lib/libcore-git" }
+rust-libcore = "0.0.3"
 titanium_arm_pl011 = { path = "lib/titanium_arm_pl011" }
 titanium = { path = "lib/titanium" }
 

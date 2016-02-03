@@ -8,7 +8,7 @@ default = []
 selftest = []
 
 [dependencies]
-core = { path = "../libcore-git" }
+rust-libcore = "0.0.3"
 
 #[dependencies.selftest]
 #path = "selftest"
