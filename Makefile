@@ -1,4 +1,4 @@
-ifeq ($(RELEASE), 1)
+ifneq ($(RELEASE),)
 O ?= target/aarch64/release
 DEP_O ?= target/aarch64/release/deps
 else
