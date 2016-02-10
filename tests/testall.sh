@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 unset RELEASE
 unset SELFTEST

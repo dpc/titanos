@@ -1,3 +1,5 @@
+#!/bin/bash
+
 export SELFTEST=1
 
 make || exit 1
